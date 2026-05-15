@@ -216,14 +216,20 @@ END;
 DELIMITER //
 CREATE PROCEDURE sp_complete_assignment_transaction (IN p_assignment_id  INT,OUT p_message VARCHAR(100))
 BEGIN
-	DECLARE EXIT HANDLER FOR SQLEXCEPTION
+	
+    DECLARE v_completed_date DATE ;
+    DECLARE v_project_status ENUM('Pending','Doing','Done');
+    DECLARE v_project_id INT;
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
 		ROLLBACK;
 	END;
-    DECLARE v_completed_date DATE ;
-    SELECT completed_date INTO v_completed_date FROM Work_Assignments 
-    WHERE assignment_id = p_assignment_id;
 	START TRANSACTION;
+	SELECT completed_date INTO v_completed_date FROM Work_Assignments 
+	WHERE assignment_id = p_assignment_id;
+	SELECT project_status INTO v_project_status FROM Projects ;
+    SELECT project_id INTO v_project_id FROM Work_Assignments 
+    WHERE assignment_id = p_assignment_id;
 		IF v_completed_date IS NOT NULL THEN
 			ROLLBACK;
 			SET p_message =  'Công việc đã hoàn thành rồi';
@@ -231,6 +237,8 @@ BEGIN
 			SET v_completed_date = CURDATE();
         END IF;
         
+        UPDATE Projects SET project_status = 'Done' 
+        WHERE project_id = v_project_id;
         COMMIT;
 END;
 // DELIMITER ;
